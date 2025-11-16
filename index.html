@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KW Explore Lead Machine</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --kw-red: #ce011f;
+      --kw-dark: #050509;
+      --kw-dark-alt: #15151a;
+      --kw-gray: #828282;
+      --kw-border: #25252c;
+      --kw-pill-bg: #101018;
+      --kw-light-gray: #cccccc;
+      --status-dark: #4d4d4d;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-main);
+      background: radial-gradient(circle at top left, #252530 0, #050509 40%);
+      color: #ffffff;
+    }
+    .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--kw-border);
+      background: rgba(5,5,10,0.96);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-logo-img { height: 34px; width: auto; object-fit: contain; }
+    .brand-text-main {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .brand-text-main span.kw { color: var(--kw-red); }
+    .brand-text-sub {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--kw-gray);
+      margin-top: 2px;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--kw-border);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--kw-light-gray);
+      background: var(--kw-pill-bg);
+    }
+
+    main { padding: 18px 20px 28px; flex: 1; }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .toolbar-left { display: flex; flex-direction: column; gap: 4px; }
+    .title { font-size: 22px; font-weight: 600; }
+    .subtitle { font-size: 13px; color: var(--kw-gray); }
+
+    .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--kw-red);
+      color: #ffffff;
+      box-shadow: 0 6px 18px rgba(206,1,31,0.45);
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+
+    .status-badge {
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--kw-border);
+      color: var(--kw-light-gray);
+      background: var(--kw-pill-bg);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--kw-gray);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 14px;
+    }
+    .filter-chip {
+      border-radius: 999px;
+      border: 1px solid var(--kw-border);
+      padding: 4px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: #101018;
+      color: var(--kw-light-gray);
+      cursor: pointer;
+      user-select: none;
+    }
+    .filter-chip.active {
+      background: var(--kw-red);
+      color: #ffffff;
+      border-color: var(--kw-red);
+    }
+
+    .table-card {
+      background: rgba(10,10,16,0.96);
+      border-radius: 16px;
+      border: 1px solid var(--kw-border);
+      padding: 10px 0 4px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.65);
+    }
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+    }
+    th, td {
+      padding: 8px 12px;
+      font-size: 13px;
+      text-align: left;
+      border-bottom: 1px solid var(--kw-border);
+    }
+    thead { background: #0f0f16; }
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--kw-gray);
+      position: sticky;
+      top: 58px;
+      background: #0f0f16;
+      z-index: 5;
+    }
+    tbody tr:nth-child(even) { background: rgba(18,18,26,0.8); }
+    tbody tr:nth-child(odd) { background: rgba(10,10,18,0.85); }
+    tbody tr:hover { background: rgba(40,40,60,0.95); }
+
+    input, select, textarea {
+      background: #12121a;
+      border-radius: 999px;
+      border: 1px solid var(--kw-border);
+      color: #ffffff;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-family: var(--font-main);
+      outline: none;
+    }
+    textarea {
+      border-radius: 10px;
+      resize: vertical;
+      min-height: 36px;
+      max-height: 80px;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--kw-red);
+      box-shadow: 0 0 0 1px rgba(206,1,31,0.5);
+    }
+    .number-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    .actions { display: flex; flex-direction: column; gap: 4px; }
+    .btn-icon {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #181820;
+      color: var(--kw-light-gray);
+    }
+    .btn-icon.whatsapp { border-color: rgba(37,211,102,0.5); }
+    .btn-icon.whatsapp span.dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #25d366;
+    }
+    .btn-icon.email { border-color: rgba(144,202,249,0.4); }
+    .btn-icon.email span.dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #90caf9;
+    }
+    .btn-icon:hover { background: #222234; }
+
+    .status-select { min-width: 140px; }
+    .status-select.status-joined {
+      background: var(--kw-red);
+      color: #ffffff;
+      font-weight: 600;
+      border-color: var(--kw-red);
+    }
+    .status-select.status-to-contact {
+      background: #101018;
+      color: var(--kw-gray);
+    }
+    .status-select.status-important {
+      background: var(--kw-light-gray);
+      color: #111;
+      font-weight: 600;
+    }
+    .status-select.status-do-not-contact {
+      background: var(--status-dark);
+      color: #fff;
+      font-weight: 600;
+    }
+    .status-select.status-cultivate {
+      font-style: italic;
+      border-style: dashed;
+    }
+
+    .message-input { width: 240px; }
+    .status-bar {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--kw-gray);
+      padding: 0 12px 6px;
+    }
+    .status-bar span.error { color: #ff7676; }
+    .status-bar span.ok { color: #9be27c; }
+    .kw-tag { font-size: 11px; color: var(--kw-gray); }
+
+    @media (max-width: 900px) {
+      main { padding: 12px; }
+      header { padding: 10px 12px; }
+      th { top: 52px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <div class="brand">
+      <img src="kw-explore-logo.png" alt="KW Explore Logo" class="brand-logo-img" />
+      <div>
+        <div class="brand-text-main"><span class="kw">KW</span> EXPLORE</div>
+        <div class="brand-text-sub">Lead Machine</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="pill">WhatsApp + Email Dashboard</div>
+      <button class="btn btn-primary" id="refreshBtn">Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="title">Cold Recruit Pipeline</div>
+        <div class="subtitle">
+          Filter by status, send WhatsApps & emails, update status and notes – all synced to your KW Explore sheet.
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="summaryText">Idle</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters" id="statusFilters"></div>
+
+    <section class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Source</th>
+            <th>Name</th>
+            <th>Surname</th>
+            <th>Number</th>
+            <th>Region</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>WA message (optional)</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody id="leads-body"></tbody>
+        </table>
+      </div>
+      <div class="status-bar">
+        <span id="statusMessage">Ready.</span>
+        <span class="kw-tag">JOINED = red · do not contact = dark · cultivate / events = dashed</span>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbwS9TEug-_ttnZHfNf1Cz1RjbDJHB2yzvW7n1tHCQ1S2imxayn7amUqEuF996edWYDD2Q/exec";
+  const API_SECRET = "KWEXPLORE_SECRET_123";
+
+  const SOURCE_OPTIONS = [
+    "COLD RECRUIT",
+    "REFERRAL",
+    "MET AT EVENT",
+    "PAST KW",
+    "ONLINE ENQUIRY",
+    "SOCIAL MEDIA",
+    "OTHER"
+  ];
+  const STATUS_OPTIONS = [
+    "To Contact",
+    "Whatsapp Sent",
+    "No Whatsapp",
+    "Replied",
+    "Not Interested in KW",
+    "Invite to Events/ Networking",
+    "Appointment",
+    "Appointment booked",
+    "Ready to join KW",
+    "JOINED",
+    "cultivate",
+    "decided not to join",
+    "do not contact"
+  ];
+  const FILTER_OPTIONS = ["All"].concat(STATUS_OPTIONS);
+
+  let leads = [];
+  let currentStatusFilter = "All";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("refreshBtn").addEventListener("click", loadLeads);
+    renderFilters();
+    loadLeads();
+  });
+
+  function setSummary(text) {
+    const el = document.getElementById("summaryText");
+    if (el) el.textContent = text;
+  }
+
+  function setStatusMessage(text, isError = false) {
+    const el = document.getElementById("statusMessage");
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle("error", isError);
+    el.classList.toggle("ok", !isError && text && text !== "Ready.");
+  }
+
+  function renderFilters() {
+    const container = document.getElementById("statusFilters");
+    container.innerHTML = "";
+    FILTER_OPTIONS.forEach(status => {
+      const chip = document.createElement("div");
+      chip.className = "filter-chip";
+      if (status === currentStatusFilter) chip.classList.add("active");
+      chip.textContent = status;
+      chip.dataset.status = status;
+      chip.addEventListener("click", () => {
+        currentStatusFilter = status;
+        renderFilters();
+        renderTable(getVisibleLeads());
+      });
+      container.appendChild(chip);
+    });
+  }
+
+  function getVisibleLeads() {
+    if (currentStatusFilter === "All") return leads;
+    return leads.filter(l => (l.status || "To Contact") === currentStatusFilter);
+  }
+
+  async function loadLeads() {
+    setSummary("Loading leads…");
+    setStatusMessage("Loading from Google Sheets…");
+    const tbody = document.getElementById("leads-body");
+    tbody.innerHTML = "";
+
+    try {
+      const url = API_URL + "?action=listLeads&key=" + encodeURIComponent(API_SECRET);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      leads = data.leads || [];
+      renderTable(getVisibleLeads());
+      setSummary(`Loaded ${leads.length} leads`);
+      setStatusMessage("Loaded successfully.");
+    } catch (err) {
+      console.error(err);
+      setSummary("Error");
+      setStatusMessage("Error loading leads: " + err.message, true);
+    }
+  }
+
+  function applyStatusStyle(selectEl, status) {
+    selectEl.classList.remove(
+      "status-joined",
+      "status-to-contact",
+      "status-important",
+      "status-do-not-contact",
+      "status-cultivate"
+    );
+    if (!status) return;
+    if (status === "JOINED") {
+      selectEl.classList.add("status-joined");
+    } else if (status === "To Contact") {
+      selectEl.classList.add("status-to-contact");
+    } else if (status === "Ready to join KW" || status === "Appointment booked") {
+      selectEl.classList.add("status-important");
+    } else if (status === "do not contact" || status === "Not Interested in KW") {
+      selectEl.classList.add("status-do-not-contact");
+    } else if (status === "cultivate" || status === "Invite to Events/ Networking") {
+      selectEl.classList.add("status-cultivate");
+    }
+  }
+
+  function renderTable(list) {
+    const tbody = document.getElementById("leads-body");
+    tbody.innerHTML = "";
+
+    if (!list.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 10;
+      td.textContent = "No leads found for this filter.";
+      td.style.textAlign = "center";
+      td.style.padding = "20px";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    list.forEach((lead, index) => {
+      const tr = document.createElement("tr");
+      tr.dataset.row = lead.row;
+
+      const tdIndex = document.createElement("td");
+      tdIndex.textContent = index + 1;
+      tr.appendChild(tdIndex);
+
+      const tdSource = document.createElement("td");
+      const sourceSelect = document.createElement("select");
+      SOURCE_OPTIONS.forEach(src => {
+        const opt = document.createElement("option");
+        opt.value = src;
+        opt.textContent = src;
+        sourceSelect.appendChild(opt);
+      });
+      if (lead.source) sourceSelect.value = lead.source;
+      sourceSelect.addEventListener("change", () => {
+        lead.source = sourceSelect.value;
+        updateLeadField(lead.row, { source: sourceSelect.value });
+      });
+      tdSource.appendChild(sourceSelect);
+      tr.appendChild(tdSource);
+
+      const tdName = document.createElement("td");
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = lead.name || "";
+      nameInput.addEventListener("blur", () => {
+        lead.name = nameInput.value;
+        updateLeadField(lead.row, { name: nameInput.value });
+      });
+      tdName.appendChild(nameInput);
+      tr.appendChild(tdName);
+
+      const tdSurname = document.createElement("td");
+      const surnameInput = document.createElement("input");
+      surnameInput.type = "text";
+      surnameInput.value = lead.surname || "";
+      surnameInput.addEventListener("blur", () => {
+        lead.surname = surnameInput.value;
+        updateLeadField(lead.row, { surname: surnameInput.value });
+      });
+      tdSurname.appendChild(surnameInput);
+      tr.appendChild(tdSurname);
+
+      const tdNumber = document.createElement("td");
+      tdNumber.className = "number-cell";
+      const numInput = document.createElement("input");
+      numInput.type = "text";
+      numInput.value = lead.number || "";
+      numInput.addEventListener("blur", () => {
+        lead.number = numInput.value;
+        updateLeadField(lead.row, { number: numInput.value });
+      });
+      tdNumber.appendChild(numInput);
+      tr.appendChild(tdNumber);
+
+      const tdRegion = document.createElement("td");
+      const regionInput = document.createElement("input");
+      regionInput.type = "text";
+      regionInput.value = lead.region || "";
+      regionInput.addEventListener("blur", () => {
+        lead.region = regionInput.value;
+        updateLeadField(lead.row, { region: regionInput.value });
+      });
+      tdRegion.appendChild(regionInput);
+      tr.appendChild(tdRegion);
+
+      const tdStatus = document.createElement("td");
+      const statusSelect = document.createElement("select");
+      statusSelect.className = "status-select";
+      STATUS_OPTIONS.forEach(st => {
+        const opt = document.createElement("option");
+        opt.value = st;
+        opt.textContent = st;
+        statusSelect.appendChild(opt);
+      });
+      statusSelect.value = lead.status || "To Contact";
+      applyStatusStyle(statusSelect, statusSelect.value);
+      statusSelect.addEventListener("change", () => {
+        const newStatus = statusSelect.value;
+        lead.status = newStatus;
+        applyStatusStyle(statusSelect, newStatus);
+        updateLeadField(lead.row, {
+          status: newStatus,
+          channel: "App"
+        }).then(() => {
+          renderTable(getVisibleLeads());
+        });
+      });
+      tdStatus.appendChild(statusSelect);
+      tr.appendChild(tdStatus);
+
+      const tdNotes = document.createElement("td");
+      const notesArea = document.createElement("textarea");
+      notesArea.value = lead.notes || "";
+      notesArea.addEventListener("blur", () => {
+        lead.notes = notesArea.value;
+        updateLeadField(lead.row, { notes: notesArea.value });
+      });
+      tdNotes.appendChild(notesArea);
+      tr.appendChild(tdNotes);
+
+      const tdMsg = document.createElement("td");
+      const msgInput = document.createElement("textarea");
+      msgInput.className = "message-input";
+      msgInput.placeholder = "Custom WhatsApp message (optional)";
+      msgInput.value = "";
+      tdMsg.appendChild(msgInput);
+      tr.appendChild(tdMsg);
+
+      const tdActions = document.createElement("td");
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "actions";
+
+      const waBtn = document.createElement("button");
+      waBtn.type = "button";
+      waBtn.className = "btn-icon whatsapp";
+      waBtn.innerHTML = '<span class="dot"></span><span>WhatsApp</span>';
+      waBtn.disabled = !lead.waPhone;
+      waBtn.addEventListener("click", () =>
+        sendWhatsApp(lead, msgInput.value)
+      );
+      actionsDiv.appendChild(waBtn);
+
+      const emailBtn = document.createElement("button");
+      emailBtn.type = "button";
+      emailBtn.className = "btn-icon email";
+      emailBtn.innerHTML = '<span class="dot"></span><span>Email</span>';
+      emailBtn.disabled = !lead.email;
+      emailBtn.addEventListener("click", () =>
+        sendEmail(lead)
+      );
+      actionsDiv.appendChild(emailBtn);
+
+      tdActions.appendChild(actionsDiv);
+      tr.appendChild(tdActions);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function updateLeadField(row, fields) {
+    try {
+      const payload = Object.assign(
+        { key: API_SECRET, action: "updateLead", row },
+        fields
+      );
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setStatusMessage("Updated row " + row);
+    } catch (err) {
+      console.error(err);
+      setStatusMessage("Update error: " + err.message, true);
+    }
+  }
+
+  async function sendWhatsApp(lead, customMsg) {
+    if (!lead.waPhone) {
+      setStatusMessage("No WhatsApp number for this lead.", true);
+      return;
+    }
+    const message = customMsg && customMsg.trim().length
+      ? customMsg.trim()
+      : (lead.waDefaultText || "");
+    if (!message) {
+      setStatusMessage("No message text.", true);
+      return;
+    }
+    const url = "https://wa.me/" + lead.waPhone +
+      "?text=" + encodeURIComponent(message);
+    window.open(url, "_blank");
+    await updateLeadField(lead.row, {
+      status: "Whatsapp Sent",
+      notes: (lead.notes || "") + (lead.notes ? "
+" : "") + "[WA] " + message,
+      channel: "WhatsApp"
+    });
+    renderTable(getVisibleLeads());
+  }
+
+  async function sendEmail(lead) {
+    if (!lead.email) {
+      setStatusMessage("No email for this lead.", true);
+      return;
+    }
+    const subject = lead.emailSubject || "Quick question";
+    const body = lead.emailBody || "";
+    const mailto = "mailto:" + encodeURIComponent(lead.email) +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+    window.location.href = mailto;
+    await updateLeadField(lead.row, {
+      status: "Replied",
+      channel: "Email"
+    });
+    renderTable(getVisibleLeads());
+  }
+</script>
+</body>
+</html>
