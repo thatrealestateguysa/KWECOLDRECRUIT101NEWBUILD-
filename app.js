@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_BASE = 'https://script.google.com/macros/s/AKfycby_7tljR5bveYFaG0-EwugxTJJxr0cH6RcJ6haMbuQIAsvwnlzZtVDtYtg3XsFq-jubmw/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycbzn8jK5iVz83xgxNOjbfcOh8sHlbFRb64aJPmUUnKuU0xVJ8UKASbq_bDmQj5fbYwfgOA/exec';
 
 let sources = [];
 let statuses = [];
@@ -63,10 +63,12 @@ async function initialise() {
   }
 }
 
+// Build counts map from current leads
 function buildStatusCounts() {
   const counts = {};
   leads.forEach(lead => {
-    const st = lead.status || 'Unassigned';
+    const raw = lead.status != null ? String(lead.status) : '';
+    const st = raw.trim() || 'Unassigned';
     counts[st] = (counts[st] || 0) + 1;
   });
   return counts;
@@ -77,16 +79,24 @@ function renderStatusTabs() {
   const counts = buildStatusCounts();
   const allCount = leads.length;
 
+  // ALL tab
   const allTab = createStatusTabElement('All', allCount);
   if (activeStatusFilter === 'All') allTab.classList.add('active');
   statusTabsEl.appendChild(allTab);
 
-  const keys = Object.keys(counts).sort();
-  keys.forEach(key => {
-    const tab = createStatusTabElement(key, counts[key]);
-    if (activeStatusFilter === key) tab.classList.add('active');
+  // Tabs for each status from master list – ALWAYS show, even if 0
+  statuses.forEach(st => {
+    const count = counts[st] || 0;
+    const tab = createStatusTabElement(st, count);
+    if (activeStatusFilter === st) tab.classList.add('active');
     statusTabsEl.appendChild(tab);
   });
+
+  // Unassigned tab (for blanks / values not matching master list)
+  const unassignedCount = counts['Unassigned'] || 0;
+  const tabUnassigned = createStatusTabElement('Unassigned', unassignedCount);
+  if (activeStatusFilter === 'Unassigned') tabUnassigned.classList.add('active');
+  statusTabsEl.appendChild(tabUnassigned);
 }
 
 function createStatusTabElement(label, count) {
@@ -105,7 +115,19 @@ function createStatusTabElement(label, count) {
 
 function getFilteredLeads() {
   if (activeStatusFilter === 'All') return leads;
-  return leads.filter(lead => (lead.status || 'Unassigned') === activeStatusFilter);
+
+  if (activeStatusFilter === 'Unassigned') {
+    return leads.filter(lead => {
+      const raw = lead.status != null ? String(lead.status) : '';
+      const st = raw.trim();
+      return !st || statuses.indexOf(st) === -1;
+    });
+  }
+
+  return leads.filter(lead => {
+    const raw = lead.status != null ? String(lead.status) : '';
+    return raw.trim() === activeStatusFilter;
+  });
 }
 
 function renderLeads() {
@@ -146,16 +168,28 @@ function renderLeads() {
     statusSel.className = 'status-select';
     statusSel.dataset.row = lead.row;
 
+    // Blank option
     const blankOpt = document.createElement('option');
     blankOpt.value = '';
     blankOpt.textContent = '—';
     statusSel.appendChild(blankOpt);
 
+    const currentStatus = (lead.status != null ? String(lead.status) : '').trim();
+
+    // If current status is not in master list and not blank, show it as first option
+    if (currentStatus && !statuses.includes(currentStatus)) {
+      const curOpt = document.createElement('option');
+      curOpt.value = currentStatus;
+      curOpt.textContent = currentStatus + ' (legacy)';
+      statusSel.appendChild(curOpt);
+    }
+
+    // Master statuses
     statuses.forEach(st => {
       const opt = document.createElement('option');
       opt.value = st;
       opt.textContent = st;
-      if (lead.status === st) opt.selected = true;
+      if (currentStatus === st) opt.selected = true;
       statusSel.appendChild(opt);
     });
 
@@ -163,7 +197,6 @@ function renderLeads() {
       const newStatus = statusSel.value;
       try {
         await apiPost({ action: 'updateStatus', row: lead.row, status: newStatus });
-        // update local lead
         const idx = leads.findIndex(l => l.row === lead.row);
         if (idx !== -1) {
           leads[idx].status = newStatus;
