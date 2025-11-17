@@ -14,30 +14,20 @@ const sendEmailBtn = document.getElementById('sendEmailBtn');
 const selectAllEl = document.getElementById('selectAll');
 const statusTabsEl = document.getElementById('statusTabs');
 
-async function apiGet(action) {
-  const url = API_BASE + '?action=' + encodeURIComponent(action);
-  setApiStatus('Loading ' + action + '…');
+// ---- Generic GET helper ----
+async function apiGet(paramsObj) {
+  const params = new URLSearchParams(paramsObj);
+  const url = API_BASE + '?' + params.toString();
+  setApiStatus('Loading ' + (params.get('action') || '') + '…');
   const res = await fetch(url, { method: 'GET', redirect: 'follow' });
   if (!res.ok) {
-    throw new Error('GET ' + action + ' failed: ' + res.status);
+    throw new Error('GET failed: ' + res.status);
   }
   const data = await res.json();
   setApiStatus('Connected', 'ok');
-  return data;
-}
-
-async function apiPost(payload) {
-  setApiStatus('Saving…');
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    throw new Error('POST failed: ' + res.status);
+  if (data && data.error) {
+    throw new Error(data.error);
   }
-  const data = await res.json();
-  setApiStatus('Connected', 'ok');
   return data;
 }
 
@@ -49,11 +39,11 @@ function setApiStatus(text, state) {
 
 async function initialise() {
   try {
-    const lists = await apiGet('lists');
+    const lists = await apiGet({ action: 'lists' });
     sources = lists.sources || [];
     statuses = lists.statuses || [];
 
-    const leadData = await apiGet('leads');
+    const leadData = await apiGet({ action: 'leads' });
     leads = leadData.leads || [];
     renderStatusTabs();
     renderLeads();
@@ -63,6 +53,7 @@ async function initialise() {
   }
 }
 
+// ---- Status & tabs ----
 function buildStatusCounts() {
   const counts = {};
   leads.forEach(lead => {
@@ -126,6 +117,24 @@ function getFilteredLeads() {
   });
 }
 
+// ---- Update helpers using GET ----
+async function updateStatus(row, status) {
+  return apiGet({
+    action: 'updateStatus',
+    row: String(row),
+    status: status || ''
+  });
+}
+
+async function updateNotes(row, notes) {
+  return apiGet({
+    action: 'updateNotes',
+    row: String(row),
+    notes: notes || ''
+  });
+}
+
+// ---- Render table ----
 function renderLeads() {
   leadsBodyEl.innerHTML = '';
   const filtered = getFilteredLeads();
@@ -189,7 +198,7 @@ function renderLeads() {
     statusSel.addEventListener('change', async () => {
       const newStatus = statusSel.value;
       try {
-        await apiPost({ action: 'updateStatus', row: lead.row, status: newStatus });
+        await updateStatus(lead.row, newStatus);
         const idx = leads.findIndex(l => l.row === lead.row);
         if (idx !== -1) {
           leads[idx].status = newStatus;
@@ -260,7 +269,7 @@ function renderLeads() {
     saveBtn.addEventListener('click', async () => {
       const newNotes = notesArea.value;
       try {
-        await apiPost({ action: 'updateNotes', row: lead.row, notes: newNotes });
+        await updateNotes(lead.row, newNotes);
         const idx = leads.findIndex(l => l.row === lead.row);
         if (idx !== -1) {
           leads[idx].notes = newNotes;
@@ -279,6 +288,7 @@ function renderLeads() {
   });
 }
 
+// ---- Bulk email ----
 async function handleSendEmails() {
   const selectedRows = Array.from(
     leadsBodyEl.querySelectorAll('input[type="checkbox"]:checked')
@@ -290,10 +300,9 @@ async function handleSendEmails() {
   }
 
   try {
-    const result = await apiPost({
+    const result = await apiGet({
       action: 'sendEmails',
-      rows: selectedRows,
-      dryRun: false
+      rows: JSON.stringify(selectedRows)
     });
     const count = result.sentCount || 0;
     setApiStatus('Emails sent: ' + count, 'ok');
