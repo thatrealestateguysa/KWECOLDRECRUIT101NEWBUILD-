@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_BASE = 'https://script.google.com/macros/s/AKfycbzn8jK5iVz83xgxNOjbfcOh8sHlbFRb64aJPmUUnKuU0xVJ8UKASbq_bDmQj5fbYwfgOA/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycby9kfojW8IZFte7c_7_AplJDSzvD5rChg4hjDDYquJhMyPW--lLjKwmpJ6yrsmXliw9OA/exec';
 
 let sources = [];
 let statuses = [];
@@ -63,7 +63,6 @@ async function initialise() {
   }
 }
 
-// Build counts map from current leads
 function buildStatusCounts() {
   const counts = {};
   leads.forEach(lead => {
@@ -79,12 +78,10 @@ function renderStatusTabs() {
   const counts = buildStatusCounts();
   const allCount = leads.length;
 
-  // ALL tab
   const allTab = createStatusTabElement('All', allCount);
   if (activeStatusFilter === 'All') allTab.classList.add('active');
   statusTabsEl.appendChild(allTab);
 
-  // Tabs for each status from master list – ALWAYS show, even if 0
   statuses.forEach(st => {
     const count = counts[st] || 0;
     const tab = createStatusTabElement(st, count);
@@ -92,7 +89,6 @@ function renderStatusTabs() {
     statusTabsEl.appendChild(tab);
   });
 
-  // Unassigned tab (for blanks / values not matching master list)
   const unassignedCount = counts['Unassigned'] || 0;
   const tabUnassigned = createStatusTabElement('Unassigned', unassignedCount);
   if (activeStatusFilter === 'Unassigned') tabUnassigned.classList.add('active');
@@ -168,7 +164,6 @@ function renderLeads() {
     statusSel.className = 'status-select';
     statusSel.dataset.row = lead.row;
 
-    // Blank option
     const blankOpt = document.createElement('option');
     blankOpt.value = '';
     blankOpt.textContent = '—';
@@ -176,7 +171,6 @@ function renderLeads() {
 
     const currentStatus = (lead.status != null ? String(lead.status) : '').trim();
 
-    // If current status is not in master list and not blank, show it as first option
     if (currentStatus && !statuses.includes(currentStatus)) {
       const curOpt = document.createElement('option');
       curOpt.value = currentStatus;
@@ -184,7 +178,6 @@ function renderLeads() {
       statusSel.appendChild(curOpt);
     }
 
-    // Master statuses
     statuses.forEach(st => {
       const opt = document.createElement('option');
       opt.value = st;
