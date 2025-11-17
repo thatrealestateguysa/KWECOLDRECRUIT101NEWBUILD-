@@ -4,6 +4,7 @@ const API_BASE = 'https://script.google.com/macros/s/AKfycby_7tljR5bveYFaG0-Ewug
 let sources = [];
 let statuses = [];
 let leads = [];
+let activeStatusFilter = 'All';
 
 const apiStatusEl = document.getElementById('apiStatus');
 const leadCountEl = document.getElementById('leadCount');
@@ -11,6 +12,7 @@ const leadsBodyEl = document.getElementById('leadsBody');
 const refreshBtn = document.getElementById('refreshBtn');
 const sendEmailBtn = document.getElementById('sendEmailBtn');
 const selectAllEl = document.getElementById('selectAll');
+const statusTabsEl = document.getElementById('statusTabs');
 
 async function apiGet(action) {
   const url = API_BASE + '?action=' + encodeURIComponent(action);
@@ -53,6 +55,7 @@ async function initialise() {
 
     const leadData = await apiGet('leads');
     leads = leadData.leads || [];
+    renderStatusTabs();
     renderLeads();
   } catch (err) {
     console.error(err);
@@ -60,11 +63,57 @@ async function initialise() {
   }
 }
 
+function buildStatusCounts() {
+  const counts = {};
+  leads.forEach(lead => {
+    const st = lead.status || 'Unassigned';
+    counts[st] = (counts[st] || 0) + 1;
+  });
+  return counts;
+}
+
+function renderStatusTabs() {
+  statusTabsEl.innerHTML = '';
+  const counts = buildStatusCounts();
+  const allCount = leads.length;
+
+  const allTab = createStatusTabElement('All', allCount);
+  if (activeStatusFilter === 'All') allTab.classList.add('active');
+  statusTabsEl.appendChild(allTab);
+
+  const keys = Object.keys(counts).sort();
+  keys.forEach(key => {
+    const tab = createStatusTabElement(key, counts[key]);
+    if (activeStatusFilter === key) tab.classList.add('active');
+    statusTabsEl.appendChild(tab);
+  });
+}
+
+function createStatusTabElement(label, count) {
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'status-tab';
+  tab.dataset.status = label;
+  tab.innerHTML = '<span class="label">' + label + '</span><span class="count">(' + count + ')</span>';
+  tab.addEventListener('click', () => {
+    activeStatusFilter = label;
+    renderStatusTabs();
+    renderLeads();
+  });
+  return tab;
+}
+
+function getFilteredLeads() {
+  if (activeStatusFilter === 'All') return leads;
+  return leads.filter(lead => (lead.status || 'Unassigned') === activeStatusFilter);
+}
+
 function renderLeads() {
   leadsBodyEl.innerHTML = '';
-  leadCountEl.textContent = (leads.length || 0) + ' leads';
+  const filtered = getFilteredLeads();
+  leadCountEl.textContent = (filtered.length || 0) + ' leads';
 
-  if (!leads.length) {
+  if (!filtered.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.colSpan = 11;
@@ -74,7 +123,7 @@ function renderLeads() {
     return;
   }
 
-  leads.forEach((lead) => {
+  filtered.forEach((lead) => {
     const tr = document.createElement('tr');
 
     const selTd = document.createElement('td');
@@ -114,7 +163,13 @@ function renderLeads() {
       const newStatus = statusSel.value;
       try {
         await apiPost({ action: 'updateStatus', row: lead.row, status: newStatus });
-        lead.status = newStatus;
+        // update local lead
+        const idx = leads.findIndex(l => l.row === lead.row);
+        if (idx !== -1) {
+          leads[idx].status = newStatus;
+        }
+        renderStatusTabs();
+        renderLeads();
       } catch (err) {
         console.error(err);
         setApiStatus('Error updating status', 'error');
@@ -180,7 +235,10 @@ function renderLeads() {
       const newNotes = notesArea.value;
       try {
         await apiPost({ action: 'updateNotes', row: lead.row, notes: newNotes });
-        lead.notes = newNotes;
+        const idx = leads.findIndex(l => l.row === lead.row);
+        if (idx !== -1) {
+          leads[idx].notes = newNotes;
+        }
       } catch (err) {
         console.error(err);
         setApiStatus('Error saving notes', 'error');

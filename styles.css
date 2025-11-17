@@ -87,7 +87,8 @@ body {
 }
 
 .controls-card,
-.table-card {
+.table-card,
+.status-tabs-card {
   background: rgba(17, 17, 17, 0.94);
   border-radius: 16px;
   border: 1px solid var(--kw-border);
@@ -109,35 +110,38 @@ body {
   gap: 10px;
 }
 
-.btn {
-  border-radius: 999px;
-  border: 1px solid transparent;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.16s ease, transform 0.08s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+.status-tabs-card {
+  padding-top: 10px;
 }
 
-.btn.primary {
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-tab {
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  border: 1px solid var(--kw-border);
+  background: #111111;
+  color: var(--kw-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-tab span.count {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.status-tab.active {
+  border-color: var(--kw-red);
   background: var(--kw-red);
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(199, 0, 0, 0.6);
-}
-
-.btn.primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(199, 0, 0, 0.7);
-}
-
-.btn.secondary {
-  background: transparent;
-  color: var(--kw-text);
-  border-color: var(--kw-grey);
-}
-
-.btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.03);
 }
 
 .table-card {
@@ -162,7 +166,7 @@ body {
 }
 
 .table-wrapper {
-  max-height: calc(100vh - 230px);
+  max-height: calc(100vh - 260px);
   overflow: auto;
   border-radius: 12px;
   border: 1px solid var(--kw-border);
